@@ -1,5 +1,7 @@
 module Transition (
       Transition(..)
+    , direction
+    , directions
     , (<.>)
     , (<|>)
     ) where
@@ -40,6 +42,14 @@ instance Show Transition where
 -----------------------------------------------------
 -- Transition types as convenient inline operators --
 -----------------------------------------------------
+
+directions = [Up, Down, Right, Left]
+
+direction transition x y = case transition of
+    Up -> (x, y-1)
+    Down -> (x, y+1)
+    Right -> (x+1, y)
+    Left -> (x-1, y)
 
 infixl 1 <.>
 (<.>) :: Transition -> Transition -> Transition
