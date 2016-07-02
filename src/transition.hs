@@ -43,8 +43,10 @@ instance Show Transition where
 -- Transition types as convenient inline operators --
 -----------------------------------------------------
 
+directions :: [Transition]
 directions = [Up, Down, Right, Left]
 
+direction :: Transition -> Int -> Int -> (Int, Int)
 direction transition x y = case transition of
     Up -> (x, y-1)
     Down -> (x, y+1)

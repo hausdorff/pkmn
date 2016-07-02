@@ -10,17 +10,20 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Vector as V
 
+import Edge as E
 import MapSquare
 import Point
-import qualified Transition as Trans
+import Transition as Trans
 
 type Pointset = Vector (Vector Point)
+type KeyFunc = Edge -> (Point, Point)
+type EdgeSet = M.Map (Point, Point) Trans.Transition
 
 data Map = Map { start         :: Point
                , end           :: Point
-            --    , points        :: Grid
-            --    , outgoingEdges :: AdjacencyMap
-            --    , incomingEdges :: AdjacencyMap
+               , points        :: Pointset
+               , outgoingEdges :: EdgeSet
+               , incomingEdges :: EdgeSet
                }
 
 asciiMapToPoints :: [String] -> Pointset
@@ -38,17 +41,36 @@ allCoordinates map = coordinates
         rowLength y = L.length (map ! y) - 1
         coordinates = [(x, y) | y <- [0..rows], x <- [0..(rowLength y)]]
 
-transitionsFrom :: Pointset -> Int -> Int -> [(Trans.Transition, (Int, Int))]
-transitionsFrom map x y = transitions
-  where validTransition t = do
-          let (x', y') = Trans.direction t x y
-          row <- map !? y'
-          point <- row !? x'
-          Just (t, (x', y'))
-        transitions = mapMaybe validTransition Trans.directions
+getPoint :: Pointset -> Int -> Int -> Maybe Point
+getPoint map x y = do
+          row <- map !? y
+          point <- row !? x
+          Just point
 
-makeMap :: [String] -> [(Trans.Transition, (Int, Int))]
-makeMap asciiMap = transitions
-  where map = asciiMapToPoints asciiMap
-        coordinates = allCoordinates map
-        transitions = L.concatMap (uncurry $ transitionsFrom map) coordinates
+edgesFrom :: Pointset -> Int -> Int -> [Edge]
+edgesFrom map x y = transitions
+  where getOutEdge t = do
+          let (x', y') = Trans.direction t x y
+          point <- getPoint map x y
+          point' <- getPoint map x' y'
+          makeEdge point point' t
+        transitions = mapMaybe getOutEdge Trans.directions
+
+outgoingEdge :: KeyFunc
+outgoingEdge (Edge p p' _) = (p, p')
+
+incomingEdge :: KeyFunc
+incomingEdge (Edge p p' _) = (p', p)
+
+aggregateEdgeSet :: [Edge] -> KeyFunc -> EdgeSet
+aggregateEdgeSet edges keyFunc = adjacencyMap
+  where union mp edge@(Edge _ _ t) = M.insertWith (<|>) (keyFunc edge) t mp
+        adjacencyMap = L.foldl union M.empty edges
+
+makeMap :: [String] -> EdgeSet
+makeMap asciiMap = incomingEdges
+  where mp = asciiMapToPoints asciiMap
+        coordinates = allCoordinates mp
+        allEdges = L.concatMap (uncurry $ edgesFrom mp) coordinates
+        outgoingEdges = aggregateEdgeSet allEdges outgoingEdge
+        incomingEdges = aggregateEdgeSet allEdges incomingEdge

@@ -11,7 +11,7 @@ data Point = Point Int Int MapSquare
     deriving (Eq, Ord)
 
 instance Show Point where
-    show (Point _ _ sqr) = show sqr
+    show (Point p p' sqr) = show (p, p', sqr)
 
 toChar :: Point -> Char
 toChar p = case show p of

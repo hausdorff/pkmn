@@ -1,4 +1,6 @@
 
+import Data.Map as M
+
 import Map
 
 m = ["#####",
@@ -6,4 +8,4 @@ m = ["#####",
      "#S  #",
      "#####"]
 
-main = mapM print $ Map.makeMap m
+main = mapM print $ M.toList $ Map.makeMap m
