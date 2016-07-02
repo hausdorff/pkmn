@@ -16,14 +16,15 @@ import Point
 import Transition as Trans
 
 type Pointset = Vector (Vector Point)
-type KeyFunc = Edge -> (Point, Point)
 type EdgeSet = M.Map (Point, Point) Trans.Transition
+type KeyFunc = Edge -> Point
+type TransitionMap = M.Map Point EdgeSet
 
 data Map = Map { start         :: Point
                , end           :: Point
                , points        :: Pointset
-               , outgoingEdges :: EdgeSet
-               , incomingEdges :: EdgeSet
+               , outgoingEdges :: TransitionMap
+               , incomingEdges :: TransitionMap
                }
 
 asciiMapToPoints :: [String] -> Pointset
@@ -56,21 +57,37 @@ edgesFrom map x y = transitions
           makeEdge point point' t
         transitions = mapMaybe getOutEdge Trans.directions
 
-outgoingEdge :: KeyFunc
-outgoingEdge (Edge p p' _) = (p, p')
+makeEdgeSet :: [Edge] -> EdgeSet
+makeEdgeSet edges = edgeset
+  where union mp edge@(Edge p p' t) = M.insertWith (<|>) (p, p') t mp
+        edgeset = L.foldl union M.empty edges
 
-incomingEdge :: KeyFunc
-incomingEdge (Edge p p' _) = (p', p)
+addEdge :: EdgeSet -> Edge -> EdgeSet
+addEdge mp edge@(Edge p p' t) = M.insertWith (<|>) key val mp
+  where key = (p, p')
+        val = t
 
-aggregateEdgeSet :: [Edge] -> KeyFunc -> EdgeSet
-aggregateEdgeSet edges keyFunc = adjacencyMap
-  where union mp edge@(Edge _ _ t) = M.insertWith (<|>) (keyFunc edge) t mp
-        adjacencyMap = L.foldl union M.empty edges
+indexOnOutgoing :: KeyFunc
+indexOnOutgoing (Edge p _ _) = p
 
-makeMap :: [String] -> EdgeSet
+indexOnIncoming :: KeyFunc
+indexOnIncoming (Edge _ p' _) = p'
+
+unionTransitions :: KeyFunc -> TransitionMap -> Edge -> TransitionMap
+unionTransitions keyFunc mp edge = mp'
+  where combineEdgesets _ oldEdgeset = addEdge oldEdgeset edge
+        key = keyFunc edge
+        defaultValue = makeEdgeSet [edge]
+        mp' = M.insertWith combineEdgesets key defaultValue mp
+
+makeTransitionMap :: KeyFunc -> [Edge] -> TransitionMap
+makeTransitionMap keyFunc edges = transitionMap
+  where transitionMap = L.foldl (unionTransitions keyFunc) M.empty edges
+
+makeMap :: [String] -> TransitionMap
 makeMap asciiMap = incomingEdges
   where mp = asciiMapToPoints asciiMap
         coordinates = allCoordinates mp
         allEdges = L.concatMap (uncurry $ edgesFrom mp) coordinates
-        outgoingEdges = aggregateEdgeSet allEdges outgoingEdge
-        incomingEdges = aggregateEdgeSet allEdges incomingEdge
+        outgoingEdges = makeTransitionMap indexOnOutgoing allEdges
+        incomingEdges = makeTransitionMap indexOnIncoming allEdges
