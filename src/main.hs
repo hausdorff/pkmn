@@ -8,4 +8,4 @@ m = ["#####",
      "#S  #",
      "#####"]
 
-main = mapM print $ M.toList $ Map.makeMap m
+main = print (Map.makeMap m)
