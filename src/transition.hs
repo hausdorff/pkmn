@@ -25,6 +25,7 @@ data Transition =
     | Select
     | Start
     | Epsilon
+    deriving (Eq, Ord)
 
 instance Show Transition where
     show (Concat t1 t2) = "(" ++ show t1 ++ show t2 ++ ")"

@@ -9,7 +9,7 @@ import Point
 import Transition
 
 data Edge = Edge Point Point Transition
-    deriving (Show)
+    deriving (Eq, Show, Ord)
 
 makeEdge :: Point -> Point -> Transition -> Maybe Edge
 makeEdge from to direction = case (sqr from, sqr to) of

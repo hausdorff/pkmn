@@ -1,5 +1,6 @@
 module Map (
-      Map(..)
+      DotGraph(..)
+    , Map(..)
     , makeMap
     , collapse
 ) where
@@ -9,15 +10,16 @@ import Control.Monad.State (State, runState, state)
 import Data.Maybe (mapMaybe)
 import qualified Data.List as L ( (++), concatMap, intercalate, length)
 import qualified Data.Map as M ( Map, delete, empty, findWithDefault
-                               , foldrWithKey, insert, insertWith, keys, lookup
-                               , member, size )
+                               , foldrWithKey, insert, insertWith, keys
+                               , keysSet, lookup, member, size, toList )
+import qualified Data.Set as S (Set(..), fromList, map, toList, union)
 import qualified Data.Vector as V (Vector, (!), length)
 
 import AdjacencyMap (AdjacencyMap, KeyFunc, makeAdjacencyMap)
 import qualified AdjacencyMap as AM ( findOrDefault, indexOnIncoming
                                     , indexOnOutgoing, insertEdgeWithKey )
 import Edge as E (Edge(..), makeEdge)
-import Point (Point)
+import Point (Point(..))
 import Pointset (Coordinate, Pointset, (!?), asciiMapToPoints)
 import Transition as Trans (Transition(..), (<.>), direction, directions)
 
@@ -66,6 +68,51 @@ instance Show Map where
                     ("\t" ++ show k ++ ": " ++ show v) : acc)
                   []
                   (incomingEdges m)
+
+class DotGraph d where
+  toDot :: d -> String
+
+instance DotGraph Map where
+  toDot m = concat [prologue, pointLines, edgeLines, epilogue]
+    where prologue = "digraph mp {\n"
+          epilogue = "}\n"
+          pointLiteral :: Point -> String
+          pointLiteral (Point x y _) = concat ["\"(", show x, ",", show y, ")\""]
+          pointToDotEntry :: Point -> String
+          pointToDotEntry p@(Point x y _) = concat
+            [ "\t"
+            , pointLiteral p
+            , " [shape=circle label=\"#\\n("
+            , show x
+            , ","
+            , show y
+            , ")\"   pos=\""
+            , show (2*x)
+            , ","
+            , show (2*y)
+            , "!\" style=\"filled\"   fillcolor=palegreen];"
+            , "\n"
+            ]
+          edgeToDotEntry :: Edge -> String
+          edgeToDotEntry (Edge p p' t) = concat
+            [ "\t"
+            , pointLiteral p
+            , " -> "
+            , pointLiteral p'
+            , "[label=\""
+            , show t
+            , "\" fontcolor=blue];"
+            , "\n"
+            ]
+          -- GROSS GROSS GROSS.
+          outgoingPts = M.keysSet $ outgoingEdges m
+          incomingPts = M.keysSet $ incomingEdges m
+          allPts = S.union outgoingPts incomingPts
+          pointLines = concatMap pointToDotEntry allPts
+          edges edges = S.fromList $ map (\((p, p'), t) -> Edge p p' t) $ concatMap (M.toList . snd) $ M.toList edges
+          inEdges = edges $ incomingEdges m
+          outEdges = edges $ outgoingEdges m
+          edgeLines = concat $ map edgeToDotEntry $ S.toList (S.union outEdges inEdges)
 
 -- Transform an ASCII map into a `Map`.
 makeMap :: [String] -> Map

@@ -3,7 +3,7 @@ import Data.Foldable
 import Data.Map as M
 import Data.Vector as V
 
-import Map
+import Map (DotGraph(..), Map(..), collapse, makeMap)
 
 m1 = ["#####",
       "#  E#",
@@ -19,4 +19,8 @@ main = do
     let mp = Map.makeMap m2
     print mp
     putStrLn "SECOND"
-    Data.Foldable.forM_ (collapse mp (1, 1)) print
+    case collapse mp (1, 1) of
+      Nothing -> return ()
+      Just mp' -> do
+        print mp'
+        putStrLn $ toDot mp'

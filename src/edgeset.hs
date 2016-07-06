@@ -4,7 +4,7 @@ module Edgeset (
     , makeEdgeSet
 ) where
 
-import qualified Data.Map as M (Map, empty, insertWith)
+import qualified Data.Map as M (Map, empty, insertWith, toList)
 
 import Edge as E (Edge(..), makeEdge)
 import Point (Point)
