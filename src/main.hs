@@ -3,7 +3,8 @@ import Data.Foldable
 import Data.Map as M
 import Data.Vector as V
 
-import Map (DotGraph(..), Map(..), collapse, makeMap)
+import Map (DotGraph(..), Map(..), makeMap)
+import Collapse (collapse)
 
 m1 = ["#####",
       "#  E#",
